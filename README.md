@@ -26,3 +26,6 @@ nasm -f bin boot.asm -o boot.bin
 
 # Run in QEMU
 qemu-system-x86_64 boot.bin
+
+```
+If wanted to experiment, burn it into USB and plug it in your PC. Boot into it. You can see it working!
