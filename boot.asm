@@ -1,24 +1,32 @@
 [org 0x7c00]    ; Tell the assembler where the BIOS will load this code
 
 
+
+; ===============  It's a rule! As, its wired such a way in CISC. ===============
+;  The internal circuitry of x86 is physically hardwired to favor specific registers. Explore what register used for what
+; ===============						  ===============
+
+
+
+
+
 ; This function clears the screen AND resets the cursor
 manual_clear:
-    ; 1. Set up the Segment Register
-    mov ax, 0xb800    ; The VGA "window" starts at 0xb8000
-    mov es, ax        ; ES (Extra Segment) now points to Video Memory
+    
+    mov ax, 0xb800    ; AX is just a 16-bit accumulator register. The VGA "window" starts at 0xb8000
+    mov es, ax        ; ES (Extra Segment) now points to Video Memory. We cant directly move an immediate into es register.
 
-    ; 2. Start at the beginning of the "Wire"
-    xor di, di        ; DI = 0 (The very first byte of the screen)
+    
+    xor di, di        ; Just to set DI = 0
 
-    ; 3. Prepare the Data Packet
+    ; Prepare the Data Packet
     ; AH = Color (0x07 is Light Grey on Black)
     ; AL = Character (0x20 is ASCII Space)
     mov ax, 0x0720    
 
-    ; 4. The Loop (The "Banger")
-    mov cx, 2000      ; 80 columns * 25 rows = 2000 cells
+    mov cx, 2000      ; LOOP always uses CX. 80 columns * 25 rows: Its size of display in Real mode.
 .loop:
-    mov [es:di], ax   ; Write the 16-bit word (Char + Color) to the bus
+    mov [es:di], ax   ; (ES * 16) + DI = Physical Address. Write the 16-bit word (Char + Color) to the bus
     add di, 2         ; Move to the next 16-bit slot (2 bytes further)
     dec cx            ; Decrement counter
     jnz .loop         ; If CX is not 0, repeat
@@ -26,39 +34,51 @@ manual_clear:
 
 
 ; ============   This should be rewritten   ============
-;call reset
+
+mov ah, 0x02    ; BIOS function: Set Cursor Position
+mov bh, 0       ; Page number 0
+mov dh, 12      ; Row 
+mov dl, 35      ; Column 
+int 0x10	; Its must after cursor update
+
+
+
 mov ah, 0x0e
 mov al, 'M'
-call print_char
+int 0x10
 mov al, 'a'
-call print_char
+int 0x10
 mov al, 'h'
-call print_char
+int 0x10
 mov al, 'e'
-call print_char
+int 0x10
 mov al, 's'
-call print_char
+int 0x10
 mov al, 'h'
-call print_char
+int 0x10
 mov al, ' '
-call print_char
+int 0x10
 mov al, 'O'
-call print_char
+int 0x10
 mov al, 'S'
-call print_char
+int 0x10
 
-mov dx, 0x5000    ; Outer Counter (2^11 iterations) => 2048*(1/2.5Ghz)*65535*2 = 0.1 sec
+
+
+
+
+; Wait sometime
+mov dx, 0x5000
 .outer2:
-    mov cx, 0xFFFF  ; Inner Counter (65,535 iterations)
+    mov cx, 0xFFFF
 .inner2:
-    nop             ; 1 cycle
+    nop  
     dec cx
-    jnz .inner2	    ; Looks at the result of the previous operation
-    dec dx          ; 1 cycle
-    jnz .outer2      ; 3 cycles
+    jnz .inner2	   
+    dec dx    
+    jnz .outer2
     
-; ====================================    
-
+; ====================================
 
 
 
@@ -77,7 +97,7 @@ timer:
 
 	call convert_BCD
 	mov al, ':'
-	call print_char
+	int 0x10
 
 
 	mov al, 0x02        ; "mins"
@@ -86,7 +106,7 @@ timer:
 	in al, 0x71         ; Read the 8-bit value from the Data Port into AL
 	call convert_BCD
 	mov al, ':'
-	call print_char
+	int 0x10
 
 	mov al, 0x00        ; Index 0 is "Seconds"
 	out 0x70, al        ; Tell RTC we want to look at the Seconds register
@@ -101,7 +121,7 @@ timer:
 reset:
     mov ah, 0x02    ; BIOS function: Set Cursor Position
     mov bh, 0       ; Page number 0
-    mov dh, 0       ; Row 0
+    mov dh, 1       ; Row 0
     mov dl, 0       ; Column 0
     int 0x10       
     ret	
@@ -123,17 +143,17 @@ delay:
 title:
 	mov ah, 0x0e    ; BIOS scrolling teletype function
 	mov al, 'T'     ; The character to print
-	call print_char 
+	int 0x10 
 	mov al, 'i'
-	call print_char 
+	int 0x10 
 	mov al, 'm'
-	call print_char 
+	int 0x10 
 	mov al, 'e'
-	call print_char 
+	int 0x10 
 	mov al, '-'
-	call print_char
+	int 0x10
 	mov al, ' '
-	call print_char
+	int 0x10
 	ret    
     
 convert_BCD:
@@ -141,19 +161,13 @@ convert_BCD:
 	mov bl, al          ; Save original BCD (e.g., 0x25)
 	shr al, 4           ; Shift right by 4: AL is now 0x02
 	add al, '0'         ; Convert 0x02 to ASCII '2'
-	call print_char     ; Your custom print function
+	int 0x10     ; Your custom print function
 
 	mov al, bl          ; Get original back
 	and al, 0x0F        ; Mask out high nibble: AL is now 0x05
 	add al, '0'         ; Convert 0x05 to ASCII '5'
-	call print_char
+	int 0x10
 	ret
-
-
-
-print_char:
-  int 0x10
-  ret
 
 
 times 510-($-$$) db 0 ; Fill the rest of the 512 bytes with zeros
