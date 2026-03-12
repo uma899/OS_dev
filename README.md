@@ -2,7 +2,7 @@
 
 This is a simple x86 bootloader written in NASM assembly. It runs in **16-bit real mode** and prints this on screen:
 
-- Current time from the RTC (hours:minutes:seconds)
+- Current time and date from the RTC (hours:minutes:seconds) and DD/MM/YY
 
 ---
 
@@ -10,8 +10,8 @@ This is a simple x86 bootloader written in NASM assembly. It runs in **16-bit re
 
 - Clears screen with VGA text memory
 - Prints text using BIOS teletype interrupt (`int 0x10`)
-- Reads RTC (Real-Time Clock) to display current time
-- Delay loops for timing
+- Reads RTC (Real-Time Clock) to get current time and date from its output ports and then copying into a register, later to display character wise
+- Used Delay loops to get in between intervals to prevent continuous reads from RTC
 
 
 ---
