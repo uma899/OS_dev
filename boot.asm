@@ -65,65 +65,92 @@ int 0x10
 
 
 
-
-
-; Wait sometime
+; To Wait sometime - just for fun
 mov dx, 0x5000
-.outer2:
-    mov cx, 0xFFFF
-.inner2:
-    nop  
-    dec cx
-    jnz .inner2	   
-    dec dx    
-    jnz .outer2
+;.outer2:
+ ;   mov cx, 0xFFFF
+;.inner2:
+  ;  nop  
+   ; dec cx
+   ; jnz .inner2	   
+    ;dec dx    
+    ;jnz .outer2
     
 ; ====================================
 
 
 
+call msg_time_title
 
-; --- Read Seconds from RTC ---
 timer:
-	call reset
-	call title
+
+	call erase_time
+	
+
+; For RTC, 0x70 - Address Port, index of the register want to access here.
+;	   0x71 - Data Port
+
+	
 	mov al, 0x04        ; "hrs"
 	out 0x70, al        
-
-	; Tiny delay is sometimes needed for the hardware to latch, 
-	; but usually, the next instruction is fine on modern buses.
-
 	in al, 0x71         ; Read the 8-bit value from the Data Port into AL
-
 	call convert_BCD
+	
 	mov al, ':'
 	int 0x10
 
 
 	mov al, 0x02        ; "mins"
 	out 0x70, al    
-
 	in al, 0x71         ; Read the 8-bit value from the Data Port into AL
 	call convert_BCD
+	
 	mov al, ':'
 	int 0x10
 
 	mov al, 0x00        ; Index 0 is "Seconds"
-	out 0x70, al        ; Tell RTC we want to look at the Seconds register
-
+	out 0x70, al
 	in al, 0x71         ; Read the 8-bit value from the Data Port into AL
+	call convert_BCD
+	
+
+	call msg_date_title
+	
+
+	mov al, 0x07       
+	out 0x70, al       
+	in al, 0x71        
+	call convert_BCD
+
+	mov al, '/'
+    int 0x10   
+
+	mov al, 0x08        
+	out 0x70, al        
+	in al, 0x71         
+	call convert_BCD
+
+    mov al, '/'
+	int 0x10   
+
+	mov al, 0x09       
+	out 0x70, al       
+	in al, 0x71        
 	call convert_BCD
 	
 	call delay
 	jmp timer
 	
 
-reset:
+erase_time:
+; We need to move corsor position nect to 'Time- ' title 
     mov ah, 0x02    ; BIOS function: Set Cursor Position
     mov bh, 0       ; Page number 0
-    mov dh, 1       ; Row 0
-    mov dl, 0       ; Column 0
-    int 0x10       
+    mov dh, 0       ; Row 0
+    mov dl, 6       ; Column 6
+    int 0x10    
+    mov ah, 0x0e
+    
     ret	
 
 
@@ -139,22 +166,7 @@ delay:
     jnz .outer      ; 3 cycles
     ret
     
-    
-title:
-	mov ah, 0x0e    ; BIOS scrolling teletype function
-	mov al, 'T'     ; The character to print
-	int 0x10 
-	mov al, 'i'
-	int 0x10 
-	mov al, 'm'
-	int 0x10 
-	mov al, 'e'
-	int 0x10 
-	mov al, '-'
-	int 0x10
-	mov al, ' '
-	int 0x10
-	ret    
+     
     
 convert_BCD:
 	; Convert BCD in AL to ASCII to print '2' then '5'
@@ -169,6 +181,52 @@ convert_BCD:
 	int 0x10
 	ret
 
+msg_time_title:
+
+    mov ah, 0x02    
+    mov bh, 0       
+    mov dh, 0       
+    mov dl, 0       
+    int 0x10     
+
+    mov si, msg_time
+    mov ah, 0x0e        ; BIOS Teletype function
+.loop_t:		; Observe that labels to be unique	
+    lodsb               ; "Load String Byte"
+                        ; 1. Loads byte from [DS:SI] into AL
+                        ; 2. Automatically increments SI by 1
+    or al, al           ; Check if AL is zero (Fastest way to check)
+    jz .done            ; If zero, jump to end
+    int 0x10            ; Call BIOS to print the bit pattern in AL
+    jmp .loop_t         ; Repeat for next byte
+.done:			
+    ret
+    
+    
+msg_date_title:
+    mov ah, 0x02
+    mov bh, 0   
+    mov dh, 0   
+    mov dl, 66  
+    int 0x10    
+
+    mov si, msg_date
+    mov ah, 0x0e        ; BIOS Teletype function
+.loop_t:
+    lodsb               ; "Load String Byte"
+                        ; 1. Loads byte from [DS:SI] into AL
+                        ; 2. Automatically increments SI by 1
+    or al, al           ; Check if AL is zero (Fastest way to check)
+    jz .done            ; If zero, jump to end
+    int 0x10            ; Call BIOS to print the bit pattern in AL
+    jmp .loop_t         ; Repeat for next byte
+.done:			; didnt change name as anyway done here used as same thing everywhere
+    ret    
+    
+
+
+msg_time: db 'Time- ', 0  ; 'db' means Define Bytes. The '0' is End signal.
+msg_date: db 'Date- ', 0
 
 times 510-($-$$) db 0 ; Fill the rest of the 512 bytes with zeros
 dw 0xaa55             ; The "Magic Number" that tells BIOS this is a bootable OS
