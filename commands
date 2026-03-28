@@ -6,10 +6,14 @@ qemu-system-i386 -fda os-image.bin
 
 
 
-nasm -f elf32 boot.asm -o boot.o && \
+
+nasm -f bin boot.asm -o boot.bin && \
+nasm -f elf32 kernel.asm -o kernel_entry.o && \
 gcc -m32 -ffreestanding -fno-pic -fno-stack-protector -c kernel.c -o kernel.o && \
-ld -m elf_i386 -T linker.ld -o os-image.bin --oformat binary boot.o kernel.o && \
+ld -m elf_i386 -T linker.ld -o kernel.bin --oformat binary kernel_entry.o kernel.o && \
+cat boot.bin kernel.bin > os-image.bin && \
 qemu-system-i386 -fda os-image.bin
+
 
 
 
