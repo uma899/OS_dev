@@ -12,7 +12,7 @@
 - But, we can't do all these by loading just 512 bytes of instructions into RAM. (Since, CPU expects a bootloader to be exactly 512 bytes and its same as one sector of harddisk). So, we need to tell CPU to load remaining instructions into specific address in RAM (0x1000 in this case). Technically, we tell CPU to load remaining sectors from hard disk (or floppy).
 - Now, CPU can successfully enter 32 bit PM. Now, CPU is instructed to:  Read RTC (Real-Time Clock) to get current time from its output ports and then copying into a register, then to a memory locaion, later to display character wise.
 - Small Delay is given between reads using loops to prevent continuous reads from RTC.
-- To add a feature, a keyboard interrrupt is written. Writing custom interrupt handlers involve declaring **IDT** and loading correct address into IDTR. 
+- To add a feature, a keyboard interrrupt is written. Writing custom interrupt handlers involve declaring **IDT** and loading correct address into IDTR. Now, something can be typed and it is desplayed on screen!
 
 
 ---
