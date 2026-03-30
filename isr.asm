@@ -45,7 +45,7 @@ global end_interrupt
 
 
 setup_keyboard_idt:
-    mov eax, handle_keyboard   ; Load the full 32-bit address into EAX
+    mov eax, keyboard_handler_wrapper   ; Load the full 32-bit address into EAX
     mov edx, idt_start          ; Point to the start of the IDT
     add edx, (33 * 8)           ; Offset to the 33rd slot (Keyboard)
 
@@ -59,11 +59,13 @@ setup_keyboard_idt:
 
     ret
 
-
-
+keyboard_handler_wrapper:
+    pusha          ; Save all registers
+    call handle_keyboard
+    ; No need to jump to end_interrupt if it's right below
 end_interrupt:
-    mov al, 0x20            ; EOI
+    mov al, 0x20   ; Send EOI to PIC
     out 0x20, al
-    popa
-    iretd
+    popa           ; Restore all registers
+    iretd          ; Interrupt return
 
