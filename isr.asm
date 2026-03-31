@@ -68,4 +68,3 @@ end_interrupt:
     out 0x20, al
     popa           ; Restore all registers
     iretd          ; Interrupt return
-

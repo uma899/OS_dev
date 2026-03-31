@@ -20,6 +20,11 @@ qemu-system-i386 -fda os-image.bin
 
 
 
+git remote add origin https://github.com/uma899/OS_dev.git
+git pull origin main        (git pull origin main --allow-unrelated-histories)
+
+git push origin main
+
 
 See History             git log --oneline       
 Just Look Around        git checkout <id>                   
