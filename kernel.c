@@ -45,13 +45,117 @@ void fill_output(char* operation, char* result_text) {
     
 }
 
+typedef void (*command_func)(void); // A pointer to a function that takes nothing and returns nothing
+
+struct CommandEntry {
+    char* name;
+    command_func func;
+};
+
+// Your actual functions
+
 unsigned int var_a = 0;
 unsigned int var_b = 0;
 
-// strictly, Input format: a 56 89
+
+void add() {         
+        int result;
+        result = var_a + var_b;
+        char* itoc_ptr;
+        itoc_ptr = itoc(result);
+        fill_output("ADD result: ", itoc_ptr);
+}
+
+void sub() {         
+        int result;
+        result = var_a - var_b;
+        char* itoc_ptr;
+        itoc_ptr = itoc(result);
+        fill_output("SUB result: ", itoc_ptr);
+}
+
+void mul() {         
+        int result;
+        result = var_a * var_b;
+        char* itoc_ptr;
+        itoc_ptr = itoc(result);
+        fill_output("MUL result: ", itoc_ptr);
+}
+
+void div() {         
+        int result;
+        result = var_a / var_b;
+        char* itoc_ptr;
+        itoc_ptr = itoc(result);
+        fill_output("DIV result: ", itoc_ptr);
+}
+
+void help() {
+    if (line >= 15) {
+        line = 15;
+        scroll_screen();
+        scroll_screen();
+        scroll_screen();
+        scroll_screen();
+    }    
+    show("Help:", line);
+    line++;        
+    show("Ex: add 2 4", line);
+    line++;
+    show("Ex: say hello", line);
+    line++;
+    show("Size of numbers is limited. Try crashing system by typing something. You can :)", line);
+    line++;
+    show("Available: add sub mul div say reboot", line);
+    line++;
+    show("If went out of screen, dont panic! type 'reboot' and press enter. Yet to correct", line);    
+}
+
+void say() {
+    char* itoc_ptr;
+    itoc_ptr = input_buffer + 2;
+    fill_output("", itoc_ptr);    
+}
+
+void do_ntng() {
+    char temp = '\0';
+    fill_output("Invalid operation!! type help for help", &temp);
+}
+
+
+void do_reboot() { 
+    show("Rebooting in a sec...", line);
+    delay(200);
+    reboot();    
+ }
+
+// The Table
+struct CommandEntry cmd_table[] = {
+    {"add", add},
+    {"sub", sub},
+    {"mul", mul},
+    {"div", div},
+    {"say", say},
+    {"reboot", do_reboot},
+    {"help", help},
+    {0, 0}          // Null terminator for the table
+};
 
 void read_op() {
-    int i = 2;
+
+    char cmd_name[15];
+    // char* cmd_name;    // Try avoiding this as it allocates at random spot, which can be idt itself
+    int i = 0;
+
+    while (input_buffer[i] != ' ')
+    {
+        cmd_name[i] = input_buffer[i];
+        i++;
+    }
+
+    cmd_name[i] = '\0';
+    i++;
+    
     while (input_buffer[i] != ' ')
     {
         var_a = var_a * 10 + ctoi(input_buffer[i]);
@@ -65,82 +169,20 @@ void read_op() {
         i++;
     }    
 
-    unsigned int result;    
-
-    char* itoc_ptr;
-   
-    
-    switch (input_buffer[0])
-    {
-    case 'a':
-        result = var_a + var_b;
-
-        itoc_ptr = itoc(result);
-        fill_output("ADD result: ", itoc_ptr);
-        break;
-
-    case 's':
-        result = var_a - var_b;
-
-        itoc_ptr = itoc(result);
-        fill_output("SUB result: ", itoc_ptr);
-        break;   
-
-    case 'm':
-        result = var_a * var_b;
-
-        itoc_ptr = itoc(result);
-        fill_output("MUL result: ", itoc_ptr);
-        break;
-        
-    case 'd':
-        result = var_a / var_b;
-
-        itoc_ptr = itoc(result);
-        fill_output("DIV result: ", itoc_ptr);
-        break;
-        
-    case 'h':
-
-        show("Help:", line);
-        line++;        
-        show("Ex: a 2 4", line);
-        line++;
-        show("Ex: t hello", line);
-        line++;
-        show("Size of numbers is limited. Try crashing system by typing something. You can :)", line);
-        line++;
-        show("All commands are single letters for now. Available: a s m d t r", line);
-        line++;
-        show("If went out of screen, dont panic! type 'r' and press enter. Yet to correct", line);
-        
-        break;
-
-    case 't':       // tell
-        itoc_ptr = input_buffer + 2;
-        fill_output("", itoc_ptr);    
-        break;
-
-    case 'r':
-        show("Rebooting in a sec...", line);
-        delay(200);
-        reboot();
-        break;        
-        
-    
-    default:
-        char temp = '\0';
-        fill_output("Invalid operation!! type h for help", &temp);
-        break;
-    }    
-   
-}
+    int j = 0;
+    while (cmd_table[j].name != 0) {
+        if (strcmp(cmd_name, cmd_table[j].name) == 0) {
+            cmd_table[j].func(); // JUMP to the function!
+            return;
+        }
+        j++;
+    }
+    do_ntng();
+}    
 
 
 void handle_keyboard() {
     unsigned char scancode = port_byte_in(0x60);
-
-
     position = line*160 + 2*offset;
 
 
@@ -156,12 +198,21 @@ void handle_keyboard() {
                 input_buffer[buffer_index] = '\0'; // Clear the character in the buffer                
                 vga[line*160 + 2*offset] = ' ';
                 vga[line*160 + 2*offset + 1] = color;     
+
+                update_cursor(line, offset);
             } 
             break;
 
         case 0x1C: // Enter key 
-            input_buffer[buffer_index] = ' ';
 
+            if (line >= 20) {
+                line = 19;
+                scroll_screen();
+                scroll_screen();
+            }
+
+
+            input_buffer[buffer_index] = ' ';   // to put space character at last. As read_op looks for it as end
 
             line++;
 
@@ -171,39 +222,30 @@ void handle_keyboard() {
             clear_buffer(input_buffer);
             clear_buffer(output_buffer);
 
-            line++ ;        
-
+            line++ ;                 
             var_a = 0;
-            var_b = 0;            
+            var_b = 0;              
 
             show("Command> ", line);
             offset = padding;
+            update_cursor(line, offset);
             break;
-
 
         default:
             if (scancode_to_ascii[scancode] != 0) {
                 vga[position] = scancode_to_ascii[scancode];
                 vga[position + 1] = color;
                 offset++;
-
-
+                update_cursor(line, offset);
                 input_buffer[buffer_index] = scancode_to_ascii[scancode];
                 buffer_index++;
             }
             break;
     }
-
-
-    //vga[position + 1] = '_';
-    //vga[position + 3] = color;
-
 }
 
 
 void show_time() {
-
-    
 
     port_byte_out(0x70, 0x04);
     unsigned char h_bcd = port_byte_in(0x71);       // unsigned char is like 8 bit int
@@ -235,51 +277,9 @@ void kmain() {
     show("Command Line - OS by Mahesh", 0);
 
     show("Command> ", 2);
-
+    update_cursor(line, offset);
 
     while (1) {
         show_time();
     }    
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-void scroll_screen() {
-    volatile char* vga = (char*)0xB8000;
-
-    for (int i = 0; i < 24 * 80 * 2; i++) {
-        vga[i] = vga[i + 160];
-    }
-
-    for (int i = 24 * 80 * 2; i < 25 * 80 * 2; i += 2) {
-        vga[i] = ' '; 
-        vga[i + 1] = color;
-    }
-}
-*/
-
-
-/*
-int pow(int base, int power) {
-    int i = 0;
-    int value = 1;
-    while (i < power)
-    {
-        value = value*base;
-        i++;
-    }
-    return value;
-}*/

@@ -4,6 +4,7 @@
 // Pointers and Arrays need 'extern' so they aren't redefined
 extern volatile char* vga;
 extern char scancode_to_ascii[128];
+void update_cursor(int y, int x);
 
 // Function prototypes (implicitly extern)
 unsigned char port_byte_in(unsigned short port);

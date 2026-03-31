@@ -31,5 +31,20 @@ char scancode_to_ascii[128] = {
 };
 
 
+
+
+
+void update_cursor(int y, int x) {
+    short int pos = y * 80 + x;
+
+    port_byte_out(0x3D4, 0x0F);             // Select Low Byte
+    port_byte_out(0x3D5, (int)(pos & 0xFF));
+    
+    port_byte_out(0x3D4, 0x0E);             // Select High Byte
+    port_byte_out(0x3D5, (int)((pos >> 8) & 0xFF));
+}
+
+
+
 // These will be linked to your assembly implementations later
 // (Keep them empty here or implement them in a separate .asm file)

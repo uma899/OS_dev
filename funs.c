@@ -1,3 +1,15 @@
+void scroll_screen() {
+    volatile char* vga = (char*)0xB8000 + 320;
+
+    for (int i = 0; i < 24 * 80 * 2; i++) {
+        vga[i] = vga[i + 160];
+    }
+
+    for (int i = 24 * 80 * 2; i < 25 * 80 * 2; i += 2) {
+        vga[i] = ' '; 
+        vga[i + 1] = 0x0E;
+    }
+}
 
 void show(char* message, int line){
     unsigned int location = 0xb8000 + 160*line;
@@ -21,6 +33,16 @@ void put(char* message, int line, int offset) {
         vga_buffer[2*i + 1] = 0x0F;
         i++;
     }
+}
+
+
+int strcmp(char* s1, char* s2) {
+    int i = 0;
+    while (s1[i] == s2[i]) {
+        if (s1[i] == '\0') return 0;    // 0 => matched
+        i++;
+    }
+    return s1[i] - s2[i];
 }
 
 
